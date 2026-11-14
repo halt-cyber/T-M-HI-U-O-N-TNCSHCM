@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THEO DẤU CHÂN LỊCH SỬ - TỰ HÀO ĐOÀN TNCS HỒ CHÍ MINH</title>
+    <!-- Tailwind CSS cho Giao diện -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome cho Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js cho Âm thanh tổng hợp -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'doan-blue': '#00529C',
+                        'doan-light': '#0072CE',
+                        'doan-dark': '#003366',
+                        'gold': '#FFD700',
+                        'gold-light': '#FFE55C'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #001a33;
+            color: white;
+            user-select: none;
+        }
+
+        /* Hình nền động (Particles/Gradient) */
+        #bg-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #00529C 0%, #001a33 100%);
+            z-index: -2;
+        }
+        
+        .light-beam {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.05) 30deg, transparent 60deg);
+            transform-origin: center;
+            animation: rotateBeam 20s linear infinite;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        @keyframes rotateBeam {
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Hiệu ứng Text Vàng Ánh Kim */
+        .text-gold-gradient {
+            background: linear-gradient(to bottom, #FFF3A1, #FFD700, #B8860B);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0px 4px 10px rgba(255, 215, 0, 0.4));
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #FFD700, #B8860B);
+            color: #001a33;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        .btn-gold:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
+        }
+
+        .screen {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 2rem;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Vòng 1: Đáp án */
+        .answer-box {
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+        .answer-box.correct {
+            background-color: #10B981 !important; /* Green */
+            border-color: #FFF;
+            box-shadow: 0 0 30px #10B981;
+            animation: pulseCorrect 1s infinite;
+        }
+        .answer-box.dim {
+            opacity: 0.3;
+        }
+
+        @keyframes pulseCorrect {
+            0% { box-shadow: 0 0 15px #10B981; }
+            50% { box-shadow: 0 0 40px #10B981; }
+            100% { box-shadow: 0 0 15px #10B981; }
+        }
+
+        /* Vòng 2: Drag & Drop */
+        .drag-item {
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .drag-item:active {
+            cursor: grabbing;
+        }
+        .drag-item.dragging {
+            opacity: 0.5;
+            background-color: #0072CE;
+        }
+        
+        .correct-order {
+            background-color: #10B981 !important;
+            border-color: #059669 !important;
+        }
+        .wrong-order {
+            background-color: #EF4444 !important;
+            border-color: #B91C1C !important;
+        }
+
+        /* Vòng 3 & 4: Lật ô */
+        .flip-card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            backface-visibility: hidden;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+
+        /* Scoreboard Overlay */
+        #scoreboard-modal {
+            background: rgba(0, 26, 51, 0.95);
+            backdrop-filter: blur(10px);
+            transition: transform 0.4s ease-in-out;
+            transform: translateX(100%);
+        }
+        #scoreboard-modal.open {
+            transform: translateX(0);
+        }
+
+        /* Fireworks */
+        canvas#fireworks {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            display: none;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-white">
+
+    <div id="bg-container">
+        <div class="light-beam"></div>
+    </div>
+    <canvas id="fireworks"></canvas>
+
+    <!-- TRÌNH ĐIỀU KHIỂN GIÁO VIÊN (Luôn hiển thị trừ màn hình chính) -->
+    <div id="teacher-controls" class="fixed top-4 right-6 z-50 hidden flex gap-4">
+        <button onclick="toggleMute()" class="w-12 h-12 rounded-full bg-doan-dark border-2 border-doan-light hover:bg-doan-light flex items-center justify-center text-xl transition" title="Bật/Tắt Âm thanh">
+            <i id="mute-icon" class="fas fa-volume-up"></i>
+        </button>
+        <button onclick="toggleFullscreen()" class="w-12 h-12 rounded-full bg-doan-dark border-2 border-doan-light hover:bg-doan-light flex items-center justify-center text-xl transition" title="Toàn màn hình">
+            <i class="fas fa-expand"></i>
+        </button>
+        <button onclick="toggleScoreboard()" class="w-12 h-12 rounded-full bg-yellow-500 border-2 border-yellow-300 text-doan-dark hover:bg-yellow-400 flex items-center justify-center text-xl transition font-bold" title="Bảng điểm">
+            <i class="fas fa-trophy"></i>
+        </button>
+    </div>
+
+    <!-- THANH ĐIỀU HƯỚNG DƯỚI (Chuyển vòng) -->
+    <div id="navigation-bar" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40 hidden bg-doan-dark bg-opacity-80 px-6 py-3 rounded-full border border-doan-light flex gap-6 backdrop-blur-sm">
+        <button onclick="navPrev()" class="text-gray-300 hover:text-white transition"><i class="fas fa-chevron-left mr-2"></i> Trở lại</button>
+        <div class="w-px h-6 bg-gray-500"></div>
+        <button onclick="goToScreen('screen-intro')" class="text-gray-300 hover:text-white transition"><i class="fas fa-home"></i></button>
+        <button onclick="goToScreen('screen-r1')" class="text-gray-300 hover:text-white transition">V1</button>
+        <button onclick="goToScreen('screen-r2')" class="text-gray-300 hover:text-white transition">V2</button>
+        <button onclick="goToScreen('screen-r3')" class="text-gray-300 hover:text-white transition">V3</button>
+        <button onclick="goToScreen('screen-r4')" class="text-gray-300 hover:text-white transition">V4</button>
+        <button onclick="goToScreen('screen-end')" class="text-gray-300 hover:text-white transition">Kết</button>
+        <div class="w-px h-6 bg-gray-500"></div>
+        <button onclick="navNext()" class="text-white font-bold hover:text-gold transition">Tiếp tục <i class="fas fa-chevron-right ml-2"></i></button>
+    </div>
+
+
+    <!-- BẢNG ĐIỂM (Modal) -->
+    <div id="scoreboard-modal" class="fixed top-0 right-0 w-full md:w-1/3 h-full z-50 shadow-2xl border-l border-doan-light flex flex-col">
+        <div class="p-6 bg-doan-dark flex justify-between items-center border-b border-doan-light">
+            <h2 class="text-2xl font-display font-bold text-gold">BẢNG ĐIỂM 4 ĐỘI</h2>
+            <div class="flex gap-4">
+                <button onclick="sortScoreboard()" class="px-4 py-2 bg-doan-light rounded hover:bg-blue-400 text-sm font-bold"><i class="fas fa-sort-amount-down mr-2"></i>Xếp hạng</button>
+                <button onclick="toggleScoreboard()" class="text-gray-400 hover:text-white text-2xl"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="scoreboard-list">
+            <!-- Đội sẽ được render bằng JS -->
+        </div>
+    </div>
+
+
+    <!-- ================= SCREENS ================= -->
+
+    <!-- MÀN HÌNH 0: BẮT ĐẦU -->
+    <div id="screen-start" class="screen active text-center">
+        <div class="mb-8">
+            <i class="fas fa-star text-gold text-4xl mb-4 animate-pulse"></i>
+            <h2 class="text-3xl md:text-5xl font-display font-bold text-white mb-2 tracking-widest">THEO DẤU CHÂN LỊCH SỬ</h2>
+            <h1 class="text-5xl md:text-7xl font-display font-black text-gold-gradient uppercase drop-shadow-2xl">TỰ HÀO ĐOÀN TNCS HỒ CHÍ MINH</h1>
+        </div>
+        <p class="text-xl md:text-2xl text-gray-200 max-w-4xl mx-auto leading-relaxed mb-12 italic border-t border-b border-doan-light py-4">
+            "Khám phá hành trình 95 năm xây dựng, trưởng thành và phát triển của Đoàn TNCS Hồ Chí Minh (1931–2026)."
+        </p>
+        <button onclick="startGame()" class="btn-gold font-display font-black text-2xl px-12 py-5 rounded-full uppercase tracking-wider">
+            Bắt đầu hành trình <i class="fas fa-arrow-right ml-3"></i>
+        </button>
+    </div>
+
+    <!-- MÀN HÌNH 1: LUẬT CHƠI -->
+    <div id="screen-intro" class="screen">
+        <h1 class="text-5xl font-display font-black text-gold-gradient mb-12">THỂ LỆ CHƯƠNG TRÌNH</h1>
+        <div class="grid grid-cols-2 gap-8 max-w-6xl w-full">
+            <div class="bg-doan-dark bg-opacity-70 border-2 border-doan-light p-8 rounded-2xl">
+                <h3 class="text-2xl font-bold text-gold mb-4"><i class="fas fa-users mr-3"></i>Thành phần</h3>
+                <ul class="text-xl space-y-4 text-gray-200">
+                    <li><i class="fas fa-check text-green-400 mr-2"></i> Chương trình gồm 4 Đội chơi.</li>
+                    <li><i class="fas fa-check text-green-400 mr-2"></i> Các đội cùng nhau tranh tài để giành điểm cao nhất.</li>
+                    <li><i class="fas fa-check text-green-400 mr-2"></i> Sử dụng bảng A/B/C/D để trả lời.</li>
+                </ul>
+            </div>
+            <div class="bg-doan-dark bg-opacity-70 border-2 border-doan-light p-8 rounded-2xl">
+                <h3 class="text-2xl font-bold text-gold mb-4"><i class="fas fa-gavel mr-3"></i>Quy tắc</h3>
+                <ul class="text-xl space-y-4 text-gray-200">
+                    <li><i class="fas fa-check text-green-400 mr-2"></i> Vòng 1: Mốc son lịch sử (Trắc nghiệm).</li>
+                    <li><i class="fas fa-check text-green-400 mr-2"></i> Vòng 2: Dòng chảy thời gian (Sắp xếp).</li>
+                    <li><i class="fas fa-check text-green-400 mr-2"></i> Vòng 3: Nhà sử học tài ba (Giải mã).</li>
+                    <li><i class="fas fa-check text-green-400 mr-2"></i> Vòng 4: Mật mã lịch sử (Mở ô chữ).</li>
+                </ul>
+            </div>
+        </div>
+        <button onclick="goToScreen('screen-r1')" class="mt-12 px-10 py-4 btn-gold rounded-full font-bold text-2xl shadow-lg">Bắt đầu Vòng 1 <i class="fas fa-play ml-2"></i></button>
+    </div>
+
+    <!-- MÀN HÌNH 2: VÒNG 1 -->
+    <div id="screen-r1" class="screen">
+        <div class="absolute top-8 left-12">
+            <h2 class="text-3xl font-display font-bold text-gray-300">VÒNG 1</h2>
+            <h1 class="text-4xl font-display font-black text-gold">MỐC SON LỊCH SỬ</h1>
+        </div>
+        
+        <div class="absolute top-10 flex flex-col items-center">
+            <div class="text-xl text-gray-300 mb-1">Câu hỏi <span id="r1-qnum" class="font-bold text-white">1/4</span></div>
+            <div id="r1-timer" class="text-5xl font-black text-white bg-doan-dark border-4 border-gold rounded-full w-24 h-24 flex items-center justify-center shadow-[0_0_20px_rgba(255,215,0,0.5)]">10</div>
+        </div>
+
+        <div class="w-full max-w-7xl mt-24">
+            <div class="bg-doan-dark bg-opacity-90 border-4 border-doan-light rounded-3xl p-10 mb-8 text-center shadow-2xl min-h-[150px] flex items-center justify-center">
+                <h2 id="r1-question" class="text-4xl md:text-5xl font-bold leading-tight">Nội dung câu hỏi sẽ hiển thị ở đây?</h2>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6" id="r1-options">
+                <!-- Options injected via JS -->
+            </div>
+        </div>
+
+        <div class="mt-8 flex gap-6">
+            <button id="btn-r1-timer" onclick="startTimerR1()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded-full font-bold text-xl transition shadow-lg"><i class="fas fa-play mr-2"></i> Chạy giờ</button>
+            <button id="btn-r1-answer" onclick="showAnswerR1()" class="px-8 py-3 btn-gold rounded-full font-bold text-xl transition shadow-lg hidden"><i class="fas fa-eye mr-2"></i> Hiện Đáp Án</button>
+            <button id="btn-r1-next" onclick="nextQuestionR1()" class="px-8 py-3 bg-green-600 hover:bg-green-500 rounded-full font-bold text-xl transition shadow-lg hidden">Câu tiếp theo <i class="fas fa-arrow-right ml-2"></i></button>
+        </div>
+
+        <!-- Pop-up Giải thích -->
+        <div id="r1-explanation" class="absolute bottom-32 bg-black bg-opacity-80 border-l-4 border-gold p-6 rounded-lg max-w-5xl hidden animate-bounce text-xl">
+            Giải thích lịch sử
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH 3: VÒNG 2 -->
+    <div id="screen-r2" class="screen">
+        <div class="absolute top-8 left-12">
+            <h2 class="text-3xl font-display font-bold text-gray-300">VÒNG 2</h2>
+            <h1 class="text-4xl font-display font-black text-gold">DÒNG CHẢY THỜI GIAN</h1>
+        </div>
+        
+        <div class="mt-16 mb-4 text-center w-full max-w-5xl">
+            <div class="text-xl text-gray-300 mb-1">Câu hỏi <span id="r2-qnum" class="font-bold text-white">1/4</span></div>
+            <p id="r2-question" class="text-2xl text-gold font-bold bg-doan-dark border border-doan-light p-4 rounded-xl shadow-lg">Kéo thả các sự kiện theo đúng trình tự lịch sử (từ trước đến nay).</p>
+        </div>
+
+        <div class="flex gap-12 w-full max-w-7xl h-[50vh]">
+            <!-- Khung chứa để Kéo (Đảo lộn) -->
+            <div class="w-1/2 bg-doan-dark border-2 border-doan-light rounded-xl p-4 flex flex-col gap-3 overflow-y-auto" id="r2-pool" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <!-- Items injected by JS -->
+            </div>
+            
+            <!-- Khung Đích (Thứ tự) -->
+            <div class="w-1/2 bg-doan-dark border-2 border-yellow-500 rounded-xl p-4 flex flex-col gap-3 overflow-y-auto relative" id="r2-target" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="absolute inset-0 opacity-10 pointer-events-none flex flex-col justify-between py-6 px-12 text-6xl font-black text-white">
+                    <span>1</span><span>2</span><span>3</span><span>4</span>
+                </div>
+                <!-- Drop zones injected by JS -->
+            </div>
+        </div>
+
+        <div class="mt-8 flex gap-6">
+            <button id="btn-r2-check" onclick="checkOrderR2()" class="px-10 py-4 btn-gold rounded-full font-bold text-2xl transition shadow-[0_0_20px_rgba(255,215,0,0.5)]"><i class="fas fa-check-circle mr-3"></i> KIỂM TRA ĐÁP ÁN</button>
+            <button id="btn-r2-next" onclick="nextQuestionR2()" class="px-10 py-4 bg-green-600 hover:bg-green-500 rounded-full font-bold text-2xl transition shadow-lg hidden">Câu tiếp theo <i class="fas fa-arrow-right ml-2"></i></button>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH 4: VÒNG 3 -->
+    <div id="screen-r3" class="screen">
+        <div class="absolute top-8 left-12">
+            <h2 class="text-3xl font-display font-bold text-gray-300">VÒNG 3</h2>
+            <h1 class="text-4xl font-display font-black text-gold">NHÀ SỬ HỌC TÀI BA</h1>
+        </div>
+
+        <div class="w-full max-w-6xl mt-20 text-center">
+            <h2 class="text-3xl font-bold mb-2 text-gray-300">Câu hỏi <span id="r3-qnum">1</span>/4</h2>
+            
+            <div class="flex justify-center gap-6 my-8">
+                <button onclick="revealClue(1)" class="w-32 h-32 rounded-2xl bg-blue-700 hover:bg-blue-600 border-4 border-blue-400 font-bold text-2xl flex flex-col items-center justify-center transition" id="btn-clue-1">
+                    <i class="fas fa-search mb-2 text-3xl"></i> Gợi ý 1
+                </button>
+                <button onclick="revealClue(2)" class="w-32 h-32 rounded-2xl bg-blue-700 hover:bg-blue-600 border-4 border-blue-400 font-bold text-2xl flex flex-col items-center justify-center transition" id="btn-clue-2">
+                    <i class="fas fa-search mb-2 text-3xl"></i> Gợi ý 2
+                </button>
+                <button onclick="revealClue(3)" class="w-32 h-32 rounded-2xl bg-blue-700 hover:bg-blue-600 border-4 border-blue-400 font-bold text-2xl flex flex-col items-center justify-center transition" id="btn-clue-3">
+                    <i class="fas fa-search mb-2 text-3xl"></i> Gợi ý 3
+                </button>
+            </div>
+
+            <div class="space-y-4 mb-10 text-2xl min-h-[150px]">
+                <div id="clue-1-text" class="hidden p-4 bg-doan-dark border border-gray-500 rounded-lg text-yellow-300">Gợi ý 1...</div>
+                <div id="clue-2-text" class="hidden p-4 bg-doan-dark border border-gray-500 rounded-lg text-yellow-300">Gợi ý 2...</div>
+                <div id="clue-3-text" class="hidden p-4 bg-doan-dark border border-gray-500 rounded-lg text-yellow-300">Gợi ý 3...</div>
+            </div>
+
+            <div class="flex justify-center gap-6">
+                <button onclick="showAnswerR3()" id="btn-r3-ans" class="px-8 py-4 btn-gold rounded-full font-bold text-xl"><i class="fas fa-unlock mr-2"></i> Công bố Đáp án</button>
+                <button onclick="nextQuestionR3()" id="btn-r3-next" class="px-8 py-4 bg-green-600 rounded-full font-bold text-xl hidden">Câu tiếp theo <i class="fas fa-arrow-right"></i></button>
+            </div>
+
+            <div id="r3-answer-box" class="mt-8 hidden">
+                <div class="text-5xl font-black text-green-400 bg-green-900 bg-opacity-50 p-6 rounded-2xl border-4 border-green-500 animate-pulse inline-block">ĐÁP ÁN ĐÚNG</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH 5: VÒNG 4 -->
+    <div id="screen-r4" class="screen">
+        <div class="absolute top-8 left-12">
+            <h2 class="text-3xl font-display font-bold text-gray-300">VÒNG 4</h2>
+            <h1 class="text-4xl font-display font-black text-gold">MẬT MÃ LỊCH SỬ</h1>
+        </div>
+
+        <p class="text-2xl mt-16 mb-6 text-center text-gray-200">Chọn 1 ô khóa và trả lời đúng câu hỏi để mở mảnh ghép.</p>
+
+        <div class="grid grid-cols-2 gap-6 w-full max-w-4xl perspective-1000 mb-6">
+            <!-- Tiles -->
+            <div class="flip-card w-full h-40 cursor-pointer rounded-2xl" onclick="clickTileR4(1)" id="tile-1">
+                <div class="flip-card-inner w-full h-full relative text-center shadow-xl rounded-2xl">
+                    <div class="flip-card-front w-full h-full absolute bg-doan-light border-4 border-white rounded-2xl flex items-center justify-center text-6xl font-black text-white hover:bg-blue-500 transition">1</div>
+                    <div class="flip-card-back w-full h-full absolute bg-green-600 border-4 border-white rounded-2xl flex flex-col items-center justify-center p-4">
+                        <span class="text-xl text-green-100 mb-2">Từ khóa 1</span>
+                        <span class="text-4xl font-black text-white">26/3/1931</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flip-card w-full h-40 cursor-pointer rounded-2xl" onclick="clickTileR4(2)" id="tile-2">
+                <div class="flip-card-inner w-full h-full relative text-center shadow-xl rounded-2xl">
+                    <div class="flip-card-front w-full h-full absolute bg-doan-light border-4 border-white rounded-2xl flex items-center justify-center text-6xl font-black text-white hover:bg-blue-500 transition">2</div>
+                    <div class="flip-card-back w-full h-full absolute bg-green-600 border-4 border-white rounded-2xl flex flex-col items-center justify-center p-4">
+                        <span class="text-xl text-green-100 mb-2">Từ khóa 2</span>
+                        <span class="text-4xl font-black text-white uppercase">Lý Tự Trọng</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card w-full h-40 cursor-pointer rounded-2xl" onclick="clickTileR4(3)" id="tile-3">
+                <div class="flip-card-inner w-full h-full relative text-center shadow-xl rounded-2xl">
+                    <div class="flip-card-front w-full h-full absolute bg-doan-light border-4 border-white rounded-2xl flex items-center justify-center text-6xl font-black text-white hover:bg-blue-500 transition">3</div>
+                    <div class="flip-card-back w-full h-full absolute bg-green-600 border-4 border-white rounded-2xl flex flex-col items-center justify-center p-4">
+                        <span class="text-xl text-green-100 mb-2">Từ khóa 3</span>
+                        <span class="text-4xl font-black text-white uppercase">Ba Sẵn Sàng</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flip-card w-full h-40 cursor-pointer rounded-2xl" onclick="clickTileR4(4)" id="tile-4">
+                <div class="flip-card-inner w-full h-full relative text-center shadow-xl rounded-2xl">
+                    <div class="flip-card-front w-full h-full absolute bg-doan-light border-4 border-white rounded-2xl flex items-center justify-center text-6xl font-black text-white hover:bg-blue-500 transition">4</div>
+                    <div class="flip-card-back w-full h-full absolute bg-green-600 border-4 border-white rounded-2xl flex flex-col items-center justify-center p-4">
+                        <span class="text-xl text-green-100 mb-2">Từ khóa 4</span>
+                        <span class="text-4xl font-black text-white uppercase">Năm Xung Phong</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khung hiện câu hỏi của Vòng 4 -->
+        <div id="r4-question-box" class="hidden w-full max-w-5xl bg-doan-dark border-4 border-doan-light p-6 rounded-2xl shadow-2xl text-center">
+            <h3 id="r4-q-text" class="text-2xl md:text-3xl font-bold mb-6 text-white">Câu hỏi sẽ hiện ở đây?</h3>
+            <div id="r4-q-opts" class="grid grid-cols-2 gap-4">
+                <!-- Options injected by JS -->
+            </div>
+        </div>
+
+        <div id="final-message-container" class="mt-8 text-center hidden opacity-0 transition-opacity duration-1000">
+            <h3 class="text-2xl text-gray-300 mb-2">Thông điệp Bí mật:</h3>
+            <h1 class="text-5xl md:text-6xl font-display font-black text-gold-gradient uppercase drop-shadow-2xl">TỰ HÀO TRUYỀN THỐNG<br>TIẾP BƯỚC CHA ANH</h1>
+            <button onclick="goToScreen('screen-end')" class="mt-6 px-10 py-4 btn-gold rounded-full font-bold text-2xl animate-bounce">TỔNG KẾT <i class="fas fa-flag-checkered ml-2"></i></button>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH 6: KẾT THÚC -->
+    <div id="screen-end" class="screen text-center relative z-10">
+        <h1 class="text-6xl font-display font-black text-gold-gradient uppercase mb-6 drop-shadow-[0_5px_15px_rgba(255,215,0,0.6)]">95 NĂM – MỘT CHẶNG ĐƯỜNG VẺ VANG</h1>
+        <h2 class="text-3xl text-white font-bold mb-12 uppercase bg-doan-dark bg-opacity-80 p-4 rounded-xl inline-block border border-doan-light">Đoàn TNCS Hồ Chí Minh – Niềm tin, lý tưởng và khát vọng của tuổi trẻ Việt Nam</h2>
+        
+        <div class="max-w-4xl mx-auto bg-white text-doan-dark p-10 rounded-3xl shadow-[0_0_40px_rgba(255,255,255,0.3)] mb-12">
+            <h3 class="text-2xl font-bold mb-4 text-red-600">Câu hỏi suy ngẫm:</h3>
+            <p class="text-3xl font-display font-bold italic leading-tight">"Thế hệ thanh niên hôm nay cần làm gì để tiếp nối truyền thống vẻ vang của các thế hệ đoàn viên đi trước?"</p>
+        </div>
+
+        <div class="text-4xl font-display font-black text-gold space-y-4 tracking-wide bg-doan-dark bg-opacity-80 p-6 rounded-2xl inline-block border-2 border-gold">
+            <p>HIỂU LỊCH SỬ – TỰ HÀO TRUYỀN THỐNG</p>
+            <p>SỐNG CÓ LÝ TƯỞNG – KHÁT VỌNG CỐNG HIẾN</p>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT ================= -->
+    <script>
+        // --- CẤU HÌNH TRÒ CHƠI & DỮ LIỆU ---
+        
+        // Âm thanh (Sử dụng Tone.js Synthesizer)
+        let synth, tickSynth, metalSynth;
+        let isMuted = false;
+        let audioInitialized = false;
+
+        function initAudio() {
+            if (audioInitialized) return;
+            synth = new Tone.PolySynth(Tone.Synth).toDestination();
+            tickSynth = new Tone.Synth().toDestination();
+            metalSynth = new Tone.MetalSynth().toDestination();
+            metalSynth.volume.value = -10;
+            audioInitialized = true;
+        }
+
+        function playSound(type) {
+            if (isMuted || !audioInitialized) return;
+            const now = Tone.now();
+            if (type === 'correct') {
+                synth.triggerAttackRelease(["C5", "E5", "G5"], "8n", now);
+                synth.triggerAttackRelease(["C6", "E6"], "4n", now + 0.2);
+            } else if (type === 'wrong') {
+                synth.triggerAttackRelease("C3", "4n", now);
+            } else if (type === 'tick') {
+                tickSynth.triggerAttackRelease("C4", "32n", now);
+                tickSynth.volume.value = -10;
+            } else if (type === 'win') {
+                synth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "2n", now);
+                synth.triggerAttackRelease(["F4", "A4", "C5", "F5"], "2n", now + 0.5);
+                synth.triggerAttackRelease(["G4", "B4", "D5", "G5"], "2n", now + 1.0);
+                synth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "1n", now + 1.5);
+            } else if (type === 'click') {
+                tickSynth.triggerAttackRelease("G4", "32n", now);
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const icon = document.getElementById('mute-icon');
+            icon.className = isMuted ? 'fas fa-volume-mute text-red-500' : 'fas fa-volume-up';
+        }
+
+        // Toàn màn hình
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Bảng điểm
+        let teams = Array.from({length: 4}, (_, i) => ({ id: i+1, name: `Đội ${i+1}`, score: 0 }));
+        
+        function toggleScoreboard() {
+            document.getElementById('scoreboard-modal').classList.toggle('open');
+            renderScoreboard();
+        }
+
+        function renderScoreboard() {
+            const list = document.getElementById('scoreboard-list');
+            list.innerHTML = '';
+            teams.forEach((team, index) => {
+                const rankColor = index === 0 ? 'text-yellow-400' : (index === 1 ? 'text-gray-300' : (index === 2 ? 'text-orange-400' : 'text-white'));
+                list.innerHTML += `
+                    <div class="flex items-center justify-between bg-doan-dark border border-gray-600 p-3 rounded-lg hover:bg-gray-800 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-xl w-6 text-center ${rankColor}">#${index+1}</span>
+                            <span class="font-bold text-lg w-16">${team.name}</span>
+                            <span class="text-2xl font-black text-gold w-16 text-right">${team.score}</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="updateScore(${team.id}, -10)" class="w-8 h-8 bg-red-600 hover:bg-red-500 rounded text-white font-bold">-</button>
+                            <button onclick="updateScore(${team.id}, 10)" class="w-10 h-8 bg-green-600 hover:bg-green-500 rounded text-white font-bold">+10</button>
+                            <button onclick="updateScore(${team.id}, 20)" class="w-10 h-8 bg-green-500 hover:bg-green-400 rounded text-white font-bold">+20</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateScore(teamId, points) {
+            const team = teams.find(t => t.id === teamId);
+            if (team) {
+                team.score += points;
+                playSound('click');
+                renderScoreboard();
+            }
+        }
+
+        function sortScoreboard() {
+            teams.sort((a, b) => b.score - a.score);
+            playSound('correct');
+            renderScoreboard();
+        }
+
+        // Quản lý Màn hình
+        const screens = ['screen-start', 'screen-intro', 'screen-r1', 'screen-r2', 'screen-r3', 'screen-r4', 'screen-end'];
+        let currentScreenIndex = 0;
+
+        function goToScreen(screenId) {
+            initAudio(); // Initialize audio on first interaction
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            currentScreenIndex = screens.indexOf(screenId);
+            
+            // Hiện controls ở các màn trừ màn chính
+            if(screenId !== 'screen-start') {
+                document.getElementById('teacher-controls').classList.remove('hidden');
+                document.getElementById('navigation-bar').classList.remove('hidden');
+            }
+
+            if (screenId === 'screen-end') {
+                playSound('win');
+                startFireworks();
+            } else {
+                stopFireworks();
+            }
+
+            // Init specific rounds
+            if(screenId === 'screen-r1') initR1();
+            if(screenId === 'screen-r2') initR2();
+            if(screenId === 'screen-r3') initR3();
+        }
+
+        function startGame() {
+            goToScreen('screen-intro');
+        }
+
+        function navNext() {
+            if (currentScreenIndex < screens.length - 1) {
+                goToScreen(screens[currentScreenIndex + 1]);
+            }
+        }
+        function navPrev() {
+            if (currentScreenIndex > 0) {
+                goToScreen(screens[currentScreenIndex - 1]);
+            }
+        }
+
+
+        // ================= VÒNG 1: TRẮC NGHIỆM =================
+        const r1Data = [
+            { q: "Ngày thành lập Đoàn TNCS Hồ Chí Minh là ngày nào?", opts: ["A. 26/03/1930", "B. 26/03/1931", "C. 26/03/1935", "D. 03/02/1930"], ans: 1, exp: "Hội nghị BCH Trung ương Đảng lần thứ 2 (họp từ 20-26/3/1931) đã dành một phần quan trọng bàn về công tác thanh niên, đi đến quyết định thành lập tổ chức Đoàn." },
+            { q: "Người đoàn viên thanh niên cộng sản đầu tiên là ai?", opts: ["A. Kim Đồng", "B. Nguyễn Văn Trỗi", "C. Lý Tự Trọng", "D. Võ Thị Sáu"], ans: 2, exp: "Lý Tự Trọng (tên thật là Lê Hữu Trọng), hy sinh khi mới 17 tuổi với câu nói bất hủ: 'Con đường của thanh niên chỉ là con đường cách mạng...'" },
+            { q: "Từ khi thành lập đến nay, Đoàn đã trải qua bao nhiêu lần đổi tên?", opts: ["A. 5 lần", "B. 6 lần", "C. 7 lần", "D. 8 lần"], ans: 2, exp: "Đoàn đã trải qua 7 lần đổi tên để phù hợp với từng giai đoạn cách mạng. Tên hiện tại có từ năm 1976." },
+            { q: "Câu nói 'Con đường của thanh niên chỉ là con đường cách mạng, không thể có con đường nào khác' là của ai?", opts: ["A. Nguyễn Thái Học", "B. Võ Nguyên Giáp", "C. Lý Tự Trọng", "D. Nguyễn Tất Thành"], ans: 2, exp: "Đây là câu nói nổi tiếng của Anh hùng Lý Tự Trọng trước tòa án thực dân Pháp." }
+        ];
+        
+        let r1Current = 0;
+        let r1TimerInterval;
+        let r1Selected = -1;
+
+        function initR1() {
+            r1Current = 0;
+            renderQuestionR1();
+        }
+
+        function renderQuestionR1() {
+            r1Selected = -1;
+            const data = r1Data[r1Current];
+            document.getElementById('r1-qnum').innerText = `${r1Current + 1}/4`;
+            document.getElementById('r1-question').innerText = data.q;
+            document.getElementById('r1-timer').innerText = "10";
+            document.getElementById('r1-timer').className = "text-5xl font-black text-white bg-doan-dark border-4 border-gold rounded-full w-24 h-24 flex items-center justify-center shadow-[0_0_20px_rgba(255,215,0,0.5)]";
+            document.getElementById('r1-explanation').classList.add('hidden');
+            
+            const btnTimer = document.getElementById('btn-r1-timer');
+            const btnAns = document.getElementById('btn-r1-answer');
+            const btnNext = document.getElementById('btn-r1-next');
+            
+            btnTimer.classList.remove('hidden');
+            btnAns.classList.add('hidden');
+            btnNext.classList.add('hidden');
+            
+            const colors = ['bg-blue-600', 'bg-red-600', 'bg-yellow-500', 'bg-purple-600'];
+            let optsHtml = '';
+            data.opts.forEach((opt, idx) => {
+                optsHtml += `
+                    <div id="opt-${idx}" onclick="selectOptionR1(${idx})" class="answer-box ${colors[idx]} text-white text-3xl font-bold p-8 rounded-2xl shadow-lg cursor-pointer flex items-center justify-center min-h-[120px] transition-transform hover:scale-105">
+                        ${opt}
+                    </div>
+                `;
+            });
+            document.getElementById('r1-options').innerHTML = optsHtml;
+        }
+
+        function selectOptionR1(idx) {
+            // Xóa viền của tất cả các đáp án
+            for(let i=0; i<4; i++) {
+                document.getElementById(`opt-${i}`).classList.remove('ring-8', 'ring-white', 'scale-105');
+            }
+            // Thêm viền trắng nổi bật cho đáp án được chọn
+            document.getElementById(`opt-${idx}`).classList.add('ring-8', 'ring-white', 'scale-105');
+            r1Selected = idx;
+            playSound('click');
+        }
+
+        function startTimerR1() {
+            document.getElementById('btn-r1-timer').classList.add('hidden');
+            let timeLeft = 10;
+            const timerEl = document.getElementById('r1-timer');
+            
+            clearInterval(r1TimerInterval);
+            r1TimerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                
+                if(timeLeft <= 3 && timeLeft > 0) {
+                    timerEl.classList.add('text-red-500', 'border-red-500', 'animate-ping');
+                    playSound('tick');
+                } else {
+                    timerEl.classList.remove('animate-ping');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(r1TimerInterval);
+                    timerEl.innerText = "0";
+                    playSound('wrong');
+                    document.getElementById('btn-r1-answer').classList.remove('hidden');
+                }
+            }, 1000);
+        }
+
+        function showAnswerR1() {
+            document.getElementById('btn-r1-answer').classList.add('hidden');
+            playSound('correct');
+            
+            const ansIdx = r1Data[r1Current].ans;
+            for(let i=0; i<4; i++) {
+                const el = document.getElementById(`opt-${i}`);
+                if(i === ansIdx) {
+                    el.classList.add('correct');
+                } else {
+                    el.classList.add('dim');
+                }
+                // Hủy hiệu ứng chọn khi đã hiện kết quả
+                el.classList.remove('ring-8', 'ring-white', 'scale-105');
+                el.onclick = null;
+            }
+
+            const expEl = document.getElementById('r1-explanation');
+            expEl.innerHTML = `<strong>Giải thích:</strong> ${r1Data[r1Current].exp}`;
+            expEl.classList.remove('hidden');
+
+            document.getElementById('btn-r1-next').classList.remove('hidden');
+        }
+
+        function nextQuestionR1() {
+            if (r1Current < r1Data.length - 1) {
+                r1Current++;
+                renderQuestionR1();
+            } else {
+                goToScreen('screen-r2');
+            }
+        }
+
+
+        // ================= VÒNG 2: SẮP XẾP =================
+        const r2Data = [
+            {
+                q: "Sắp xếp các tên gọi của Đoàn theo thứ tự thời gian (từ trước đến nay):",
+                ans: ["Đoàn TNCS Đông Dương (1931)", "Đoàn TN Cứu quốc VN (1941)", "Đoàn TN Lao động VN (1956)", "Đoàn TNCS Hồ Chí Minh (1976)"]
+            },
+            {
+                q: "Sắp xếp các phong trào thanh niên theo thứ tự lịch sử (từ trước đến nay):",
+                ans: ["Cảm tử để Tổ quốc quyết sinh (1946)", "Ba sẵn sàng (1964)", "Năm xung phong (1965)", "Thanh niên tình nguyện (2000)"]
+            },
+            {
+                q: "Sắp xếp ngày truyền thống của các tổ chức (theo mốc thời gian trong năm):",
+                ans: ["Ngày truyền thống HSSV (09/01)", "Ngày thành lập Đảng (03/02)", "Ngày thành lập Đoàn (26/03)", "Ngày thành lập Đội (15/05)"]
+            },
+            {
+                q: "Sắp xếp các nhân vật anh hùng theo năm sinh (từ trước đến nay):",
+                ans: ["Lý Tự Trọng (1914)", "Kim Đồng (1929)", "Võ Thị Sáu (1933)", "Nguyễn Văn Trỗi (1940)"]
+            }
+        ];
+        
+        let r2Current = 0;
+
+        function initR2() {
+            r2Current = 0;
+            renderQuestionR2();
+        }
+
+        function renderQuestionR2() {
+            document.getElementById('r2-qnum').innerText = `${r2Current + 1}/4`;
+            document.getElementById('r2-question').innerText = r2Data[r2Current].q;
+            
+            document.getElementById('btn-r2-check').classList.remove('hidden');
+            document.getElementById('btn-r2-next').classList.add('hidden');
+
+            // Xáo trộn mảng
+            let shuffled = [...r2Data[r2Current].ans].sort(() => Math.random() - 0.5);
+            
+            const pool = document.getElementById('r2-pool');
+            const target = document.getElementById('r2-target');
+            
+            let poolHtml = '';
+            shuffled.forEach((name, i) => {
+                poolHtml += `<div id="drag-${i}" class="drag-item bg-doan-light p-4 rounded text-xl font-bold border-2 border-transparent shadow" draggable="true" ondragstart="drag(event)">${name}</div>`;
+            });
+            
+            pool.innerHTML = poolHtml;
+            target.innerHTML = `<div class="absolute inset-0 opacity-10 pointer-events-none flex flex-col justify-between py-6 px-12 text-6xl font-black text-white">
+                    <span>1</span><span>2</span><span>3</span><span>4</span>
+                </div>`;
+        }
+
+        // HTML5 Drag and Drop Functions
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+            ev.target.classList.add('dragging');
+        }
+
+        document.addEventListener('dragend', (ev) => {
+            if(ev.target.classList.contains('drag-item')) {
+                ev.target.classList.remove('dragging');
+            }
+        });
+
+        function drop(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            const draggedElement = document.getElementById(data);
+            
+            // Drop vào vùng container
+            if (ev.target.id === 'r2-pool' || ev.target.id === 'r2-target') {
+                ev.target.appendChild(draggedElement);
+                playSound('click');
+            } 
+            // Drop đè lên 1 item khác -> chèn vào trước item đó
+            else if (ev.target.classList.contains('drag-item')) {
+                ev.target.parentNode.insertBefore(draggedElement, ev.target);
+                playSound('click');
+            }
+        }
+
+        function checkOrderR2() {
+            const target = document.getElementById('r2-target');
+            const items = Array.from(target.children).filter(el => el.classList.contains('drag-item'));
+            
+            if (items.length < 4) {
+                playSound('wrong');
+                return;
+            }
+
+            let allCorrect = true;
+            const correctAns = r2Data[r2Current].ans;
+            
+            items.forEach((item, index) => {
+                const text = item.innerText;
+                if (text === correctAns[index]) {
+                    item.classList.remove('wrong-order');
+                    item.classList.add('correct-order');
+                } else {
+                    item.classList.remove('correct-order');
+                    item.classList.add('wrong-order');
+                    allCorrect = false;
+                }
+            });
+
+            if (allCorrect) {
+                playSound('win');
+                document.getElementById('btn-r2-check').classList.add('hidden');
+                document.getElementById('btn-r2-next').classList.remove('hidden');
+            } else {
+                playSound('wrong');
+            }
+        }
+
+        function nextQuestionR2() {
+            if (r2Current < r2Data.length - 1) {
+                r2Current++;
+                renderQuestionR2();
+            } else {
+                goToScreen('screen-r3');
+            }
+        }
+
+
+        // ================= VÒNG 3: GIẢI MÃ =================
+        const r3Data = [
+            { clues: ["Sinh năm 1914 tại Thái Lan", "Tham gia cách mạng từ rất sớm", "Người đoàn viên đầu tiên"], ans: "LÝ TỰ TRỌNG" },
+            { clues: ["Phát động năm 1964 tại Hà Nội", "Dành cho thanh niên miền Bắc", "Khẩu hiệu: ... chiến đấu, ... gia nhập bộ đội, ... đi bất cứ nơi đâu"], ans: "PHONG TRÀO BA SẴN SÀNG" },
+            { clues: ["Phát động năm 1965", "Dành cho thanh niên miền Nam", "Tiêu biểu cho tinh thần chống Mỹ cứu nước của tuổi trẻ miền Nam"], ans: "PHONG TRÀO NĂM XUNG PHONG" },
+            { clues: ["Năm đất nước thống nhất hoàn toàn về mặt nhà nước", "Kỷ niệm 45 năm ngày thành lập Đoàn", "Tháng 12/1976"], ans: "ĐOÀN ĐỔI TÊN THÀNH ĐOÀN TNCS HỒ CHÍ MINH" }
+        ];
+        
+        let r3Current = 0;
+
+        function initR3() {
+            r3Current = 0;
+            renderQuestionR3();
+        }
+
+        function renderQuestionR3() {
+            const data = r3Data[r3Current];
+            document.getElementById('r3-qnum').innerText = r3Current + 1;
+            
+            // Reset UI
+            for(let i=1; i<=3; i++) {
+                document.getElementById(`clue-${i}-text`).classList.add('hidden');
+                document.getElementById(`clue-${i}-text`).innerText = data.clues[i-1];
+                document.getElementById(`btn-clue-${i}`).classList.remove('bg-gray-600', 'border-gray-500');
+                document.getElementById(`btn-clue-${i}`).classList.add('bg-blue-700', 'border-blue-400');
+            }
+            
+            document.getElementById('r3-answer-box').classList.add('hidden');
+            document.getElementById('r3-answer-box').innerHTML = `<div class="text-5xl font-black text-green-400 bg-green-900 bg-opacity-50 p-6 rounded-2xl border-4 border-green-500 animate-pulse inline-block">${data.ans}</div>`;
+            
+            document.getElementById('btn-r3-ans').classList.remove('hidden');
+            document.getElementById('btn-r3-next').classList.add('hidden');
+        }
+
+        function revealClue(num) {
+            document.getElementById(`clue-${num}-text`).classList.remove('hidden');
+            document.getElementById(`btn-clue-${num}`).classList.remove('bg-blue-700', 'border-blue-400');
+            document.getElementById(`btn-clue-${num}`).classList.add('bg-gray-600', 'border-gray-500');
+            playSound('click');
+        }
+
+        function showAnswerR3() {
+            document.getElementById('r3-answer-box').classList.remove('hidden');
+            document.getElementById('btn-r3-ans').classList.add('hidden');
+            document.getElementById('btn-r3-next').classList.remove('hidden');
+            playSound('correct');
+        }
+
+        function nextQuestionR3() {
+            if (r3Current < r3Data.length - 1) {
+                r3Current++;
+                renderQuestionR3();
+            } else {
+                goToScreen('screen-r4');
+            }
+        }
+
+
+        // ================= VÒNG 4: MẬT MÃ =================
+        const r4Data = [
+            { q: "Ngày tháng năm nào được Bộ Chính trị và Bác Hồ cho phép lấy làm ngày kỷ niệm thành lập Đoàn?", opts: ["A. 26/3/1930", "B. 26/3/1931", "C. 26/3/1932", "D. 03/02/1931"], ans: 1 },
+            { q: "Câu nói 'Con đường của thanh niên chỉ là con đường cách mạng' là của ai?", opts: ["A. Võ Thị Sáu", "B. Nguyễn Văn Trỗi", "C. Lý Tự Trọng", "D. Kim Đồng"], ans: 2 },
+            { q: "'Sẵn sàng chiến đấu, Sẵn sàng gia nhập bộ đội, Sẵn sàng đi bất cứ nơi đâu' là khẩu hiệu của phong trào nào?", opts: ["A. Ba sẵn sàng", "B. Năm xung phong", "C. Thanh niên tình nguyện", "D. Đồng khởi"], ans: 0 },
+            { q: "Phong trào nào do Đại hội Đoàn toàn miền Nam lần thứ I (1965) phát động?", opts: ["A. Ba sẵn sàng", "B. Năm xung phong", "C. Đồng khởi", "D. Ấp Bắc"], ans: 1 }
+        ];
+
+        let r4CurrentTile = -1;
+        let r4Flipped = [false, false, false, false];
+        
+        function clickTileR4(num) {
+            if (r4Flipped[num-1]) return; // Đã lật thì không click được nữa
+            r4CurrentTile = num;
+            const data = r4Data[num-1];
+            
+            // Highlight ô đang chọn
+            for(let i=1; i<=4; i++) {
+                document.getElementById(`tile-${i}`).classList.remove('ring-4', 'ring-yellow-400');
+            }
+            document.getElementById(`tile-${num}`).classList.add('ring-4', 'ring-yellow-400');
+
+            // Hiện câu hỏi
+            document.getElementById('r4-question-box').classList.remove('hidden');
+            document.getElementById('r4-q-text').innerText = data.q;
+            
+            let optsHtml = '';
+            const colors = ['bg-blue-600', 'bg-red-600', 'bg-yellow-600', 'bg-purple-600'];
+            data.opts.forEach((opt, idx) => {
+                optsHtml += `<button onclick="checkAnswerR4(${idx})" class="p-4 ${colors[idx]} text-white text-xl font-bold rounded-xl hover:scale-105 transition border-2 border-transparent hover:border-white shadow-lg">${opt}</button>`;
+            });
+            document.getElementById('r4-q-opts').innerHTML = optsHtml;
+        }
+
+        function checkAnswerR4(idx) {
+            const data = r4Data[r4CurrentTile-1];
+            if (idx === data.ans) {
+                playSound('correct');
+                document.getElementById('r4-question-box').classList.add('hidden');
+                document.getElementById(`tile-${r4CurrentTile}`).classList.remove('ring-4', 'ring-yellow-400');
+                
+                // Lật thẻ
+                r4Flipped[r4CurrentTile-1] = true;
+                const tile = document.getElementById(`tile-${r4CurrentTile}`);
+                tile.classList.add('flipped');
+                
+                // Kiểm tra win game
+                let flippedCount = r4Flipped.filter(v => v).length;
+                if (flippedCount === 4) {
+                    setTimeout(() => {
+                        document.getElementById('final-message-container').classList.remove('hidden');
+                        setTimeout(() => {
+                            document.getElementById('final-message-container').classList.remove('opacity-0');
+                            playSound('win');
+                        }, 100);
+                    }, 1000);
+                }
+            } else {
+                playSound('wrong');
+            }
+        }
+
+
+        // ================= HIỆU ỨNG PHÁO HOA (MÀN KẾT THÚC) =================
+        const canvas = document.getElementById("fireworks");
+        const ctx = canvas.getContext("2d");
+        let particles = [];
+        let fireworksAnimId;
+
+        function startFireworks() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            canvas.style.display = 'block';
+            particles = [];
+            fireworksLoop();
+        }
+
+        function stopFireworks() {
+            canvas.style.display = 'none';
+            cancelAnimationFrame(fireworksAnimId);
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.velocity = {
+                    x: (Math.random() - 0.5) * 8,
+                    y: (Math.random() - 0.5) * 8
+                };
+                this.alpha = 1;
+                this.friction = 0.98;
+                this.gravity = 0.05;
+            }
+            draw() {
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                this.velocity.x *= this.friction;
+                this.velocity.y *= this.friction;
+                this.velocity.y += this.gravity;
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.alpha -= 0.01;
+            }
+        }
+
+        function createFirework(x, y) {
+            const colors = ['#FFD700', '#FF0000', '#00FF00', '#00FFFF', '#FF00FF'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function fireworksLoop() {
+            fireworksAnimId = requestAnimationFrame(fireworksLoop);
+            ctx.fillStyle = "rgba(0, 26, 51, 0.2)"; // Trail effect
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (Math.random() < 0.05) {
+                createFirework(Math.random() * canvas.width, Math.random() * canvas.height / 2);
+            }
+
+            particles.forEach((p, index) => {
+                if (p.alpha > 0) {
+                    p.update();
+                    p.draw();
+                } else {
+                    particles.splice(index, 1);
+                }
+            });
+        }
+
+        // Cập nhật resize
+        window.addEventListener('resize', () => {
+            if(canvas.style.display === 'block') {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+
+    </script>
+</body>
+</html>
